@@ -1,0 +1,673 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2f5d50">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Agenda">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<title>Minha Agenda</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --bg:#f6f4ef;--card:#fff;--ink:#1f2328;--muted:#6b6f76;--line:#e6e2d9;
+  --accent:#2f5d50;--accent-soft:#e3ece8;--on-accent:#fff;
+  --pes:#b4572e;--pes-soft:#f6e6dd;--pro:#2d5b8a;--pro-soft:#dfe8f2;
+  --goo:#5f6368;--goo-soft:#eceef1;
+  --hi:#c0392b;--md:#c98a1b;--lo:#7a8a7f;
+  --sat:env(safe-area-inset-top);--sab:env(safe-area-inset-bottom);
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#16181b;--card:#1f2226;--ink:#e9e7e2;--muted:#9a9ea5;--line:#2e3237;
+  --accent:#7fb8a4;--accent-soft:#24332e;--on-accent:#10201b;
+  --pes:#e39570;--pes-soft:#3a2a22;--pro:#86b0dd;--pro-soft:#22303f;--goo:#b6bac0;--goo-soft:#2a2d31;}}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:16px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.app{max-width:640px;margin:0 auto;min-height:100vh;padding:calc(var(--sat) + 14px) 14px calc(var(--sab) + 96px)}
+
+/* topo */
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+h1{font-size:26px;margin:0;letter-spacing:-.02em}
+.sub{color:var(--muted);font-size:14px;margin-top:2px}
+.chip{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:6px 11px;font-size:13px;display:inline-flex;gap:6px;align-items:center;white-space:nowrap}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted)}
+.dot.ok{background:#2e9d5b}.dot.warn{background:var(--md)}.dot.err{background:var(--hi)}
+
+/* faixa da semana */
+.strip{display:grid;grid-template-columns:auto repeat(7,1fr) auto;gap:4px;align-items:center;margin:14px 0 12px}
+.strip .nav{border:0;background:none;font-size:22px;color:var(--muted);padding:4px 6px}
+.pill{border:0;background:none;border-radius:12px;padding:6px 0;display:grid;gap:2px;justify-items:center;font-size:12px;color:var(--muted)}
+.pill b{font-size:17px;color:var(--ink);font-weight:600}
+.pill.today b{color:var(--accent)}
+.pill.sel{background:var(--accent);color:var(--on-accent)}
+.pill.sel b{color:var(--on-accent)}
+.pill i{width:4px;height:4px;border-radius:50%;background:transparent}
+.pill i.has{background:currentColor}
+
+.filters{display:flex;gap:6px;overflow-x:auto;margin-bottom:12px;scrollbar-width:none}
+.filters::-webkit-scrollbar{display:none}
+.filters button{border:1px solid var(--line);background:var(--card);border-radius:20px;padding:6px 13px;font-size:14px;white-space:nowrap}
+.filters button.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);font-weight:600}
+
+.progress{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-bottom:12px}
+.bar{flex:1;height:6px;background:var(--line);border-radius:4px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .3s}
+
+.panel{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;margin-bottom:12px}
+.sec{padding:12px 14px 4px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.sec.late{color:var(--hi)}
+.task{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border-top:1px solid var(--line)}
+.sec+.task{border-top:0}
+.time{width:46px;flex:none;color:var(--muted);font-variant-numeric:tabular-nums;font-size:14px;padding-top:3px}
+.chk{width:26px;height:26px;flex:none;border-radius:50%;border:2px solid var(--muted);background:none;display:grid;place-items:center;padding:0}
+.chk.on{background:var(--accent);border-color:var(--accent)}
+.chk.on::after{content:"";width:7px;height:12px;border:solid var(--on-accent);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.gicon{width:26px;height:26px;flex:none;border-radius:7px;background:var(--goo-soft);color:var(--goo);display:grid;place-items:center;font-size:13px;font-weight:700}
+.body{flex:1;min-width:0}
+.title{font-weight:550;word-break:break-word;line-height:1.3}
+.done .title{text-decoration:line-through;color:var(--muted)}
+.meta{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px;font-size:12px;color:var(--muted);align-items:center}
+.tag{padding:2px 8px;border-radius:20px;font-weight:600;font-size:11.5px}
+.tag.pessoal{background:var(--pes-soft);color:var(--pes)}
+.tag.profissional{background:var(--pro-soft);color:var(--pro)}
+.tag.google{background:var(--goo-soft);color:var(--goo)}
+.prio{width:8px;height:8px;border-radius:50%;display:inline-block}
+.prio.alta{background:var(--hi)}.prio.media{background:var(--md)}.prio.baixa{background:var(--lo)}
+.notes{font-size:13px;color:var(--muted);margin-top:4px;white-space:pre-wrap;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.empty{padding:40px 16px;text-align:center;color:var(--muted)}
+
+/* semana */
+.wday{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+.wday.today{border-color:var(--accent)}
+.wday h3{margin:0 0 6px;font-size:14px;display:flex;justify-content:space-between}
+.wday h3 small{color:var(--muted);font-weight:500}
+.mini{display:flex;gap:8px;align-items:center;padding:7px 9px;border-radius:9px;margin-top:5px;font-size:14px;border-left:3px solid}
+.mini.pessoal{background:var(--pes-soft);border-color:var(--pes)}
+.mini.profissional{background:var(--pro-soft);border-color:var(--pro)}
+.mini.google{background:var(--goo-soft);border-color:var(--goo)}
+.mini.done{opacity:.5;text-decoration:line-through}
+.mini .t{color:var(--muted);font-variant-numeric:tabular-nums;font-size:13px;flex:none}
+.mini span:last-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.wempty{color:var(--muted);font-size:13px}
+
+/* ajustes */
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.card h2{font-size:16px;margin:0 0 10px}
+.card p{margin:6px 0;color:var(--muted);font-size:14px;line-height:1.45}
+.card code{background:var(--bg);padding:2px 6px;border-radius:6px;font-size:13px;word-break:break-all}
+.btn{border:1px solid var(--line);background:var(--card);padding:10px 14px;border-radius:11px;font-weight:500}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--on-accent);font-weight:600}
+.btn.danger{color:var(--hi)}
+.btn.full{width:100%}
+.stack{display:grid;gap:10px}
+.switch{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:15px;color:var(--ink)}
+.switch input{width:22px;height:22px;accent-color:var(--accent)}
+
+/* abas e botão + */
+.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:var(--sab);z-index:5}
+.tabs .in{display:flex;max-width:640px;width:100%}
+.tabs button{flex:1;border:0;background:none;padding:10px 0 9px;font-size:12px;color:var(--muted);display:grid;justify-items:center;gap:3px}
+.tabs button svg{width:22px;height:22px}
+.tabs button.on{color:var(--accent);font-weight:600}
+.fab{position:fixed;right:max(18px,calc(50% - 302px));bottom:calc(var(--sab) + 76px);width:58px;height:58px;border-radius:50%;border:0;background:var(--accent);color:var(--on-accent);font-size:30px;line-height:1;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:6}
+
+/* folha de edição */
+dialog{border:0;padding:0;margin:auto auto 0;width:100%;max-width:640px;max-height:92vh;border-radius:20px 20px 0 0;background:var(--card);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.4)}
+@media (min-width:700px){dialog{margin:auto;border-radius:20px;max-width:480px}}
+form.f{padding:18px 16px calc(var(--sab) + 18px);display:grid;gap:12px}
+form.f h2{margin:0;font-size:18px}
+label{display:grid;gap:5px;font-size:13px;color:var(--muted)}
+input,select,textarea{border:1px solid var(--line);border-radius:11px;padding:10px 11px;background:var(--bg);font-size:16px;width:100%}
+textarea{resize:vertical;min-height:64px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.actions{display:flex;justify-content:space-between;gap:8px;margin-top:4px}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:8px auto -6px}
+
+.toast{position:fixed;left:50%;bottom:calc(var(--sab) + 150px);transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .25s;z-index:20;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top">
+    <div>
+      <h1 id="hTitle">Hoje</h1>
+      <div class="sub" id="hSub"></div>
+    </div>
+    <button class="chip" id="gChip"><span class="dot" id="gDot"></span><span id="gText">Google</span></button>
+  </div>
+
+  <div id="calNav">
+    <div class="strip" id="strip"></div>
+    <div class="filters" id="filters">
+      <button data-c="all" class="on">Todas</button>
+      <button data-c="profissional">Profissional</button>
+      <button data-c="pessoal">Pessoal</button>
+      <button data-c="google">Só Google</button>
+    </div>
+  </div>
+
+  <div id="view"></div>
+</div>
+
+<button class="fab" id="fab" aria-label="Nova tarefa">+</button>
+
+<nav class="tabs"><div class="in">
+  <button data-tab="day" class="on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M8 12l3 3 5-6"/></svg>Dia</button>
+  <button data-tab="week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Semana</button>
+  <button data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></svg>Ajustes</button>
+</div></nav>
+
+<dialog id="dlg">
+  <div class="grab"></div>
+  <form class="f" id="form">
+    <h2 id="fTitle">Nova tarefa</h2>
+    <label>Título<input name="title" required maxlength="140" autocomplete="off" placeholder="Ex.: Reunião com equipe"></label>
+    <div class="grid2">
+      <label>Data<input type="date" name="date" required></label>
+      <label>Horário<input type="time" name="time"></label>
+    </div>
+    <div class="grid2">
+      <label>Categoria
+        <select name="cat"><option value="profissional">Profissional</option><option value="pessoal">Pessoal</option></select>
+      </label>
+      <label>Duração
+        <select name="dur"><option value="15">15 min</option><option value="30" selected>30 min</option><option value="45">45 min</option><option value="60">1 h</option><option value="90">1h30</option><option value="120">2 h</option><option value="180">3 h</option></select>
+      </label>
+    </div>
+    <div class="grid2">
+      <label>Prioridade
+        <select name="prio"><option value="media">Média</option><option value="alta">Alta</option><option value="baixa">Baixa</option></select>
+      </label>
+      <label>Repetir
+        <select name="rep"><option value="none">Não repete</option><option value="daily">Todo dia</option><option value="weekdays">Dias úteis</option><option value="weekly">Toda semana</option><option value="monthly">Todo mês</option></select>
+      </label>
+    </div>
+    <label>Notas<textarea name="notes" placeholder="Detalhes, links, contexto…"></textarea></label>
+    <label class="switch" id="syncRow">Enviar para o Google Agenda<input type="checkbox" name="sync" checked></label>
+    <div class="actions">
+      <button type="button" class="btn danger" id="delBtn">Excluir</button>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn" id="cancelBtn">Cancelar</button>
+        <button type="submit" class="btn primary">Salvar</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<input type="file" id="importFile" accept=".json,application/json" hidden>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+'use strict';
+// ================= armazenamento =================
+const KEY='minha-agenda-v2', SKEY='minha-agenda-settings', TKEY='minha-agenda-token';
+let storageOk=true;
+function lsGet(k,def){try{const r=localStorage.getItem(k);return r?JSON.parse(r):def}catch(e){storageOk=false;return def}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){storageOk=false}}
+function lsDel(k){try{localStorage.removeItem(k)}catch(e){}}
+
+let state=lsGet(KEY,null);
+if(!state||!Array.isArray(state.tasks)){
+  // migra da versão anterior (desktop), se existir
+  const old=lsGet('minha-agenda-v1',null);
+  state={tasks:old&&Array.isArray(old.tasks)?old.tasks:[],pendingDeletes:[]};
+}
+state.pendingDeletes=state.pendingDeletes||[];
+let settings=Object.assign({clientId:'',calendarId:'primary',calendarName:'Principal',showGoogle:true,connected:false},lsGet(SKEY,{}));
+function save(){lsSet(KEY,state)}
+function saveSettings(){lsSet(SKEY,settings)}
+
+// ================= datas =================
+const pad=n=>String(n).padStart(2,'0');
+const toStr=d=>d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+const fromStr=s=>{const[a,b,c]=s.split('-').map(Number);return new Date(a,b-1,c)};
+const todayStr=()=>toStr(new Date());
+const addDays=(s,n)=>{const d=fromStr(s);d.setDate(d.getDate()+n);return toStr(d)};
+const weekStart=s=>{const d=fromStr(s);d.setDate(d.getDate()-((d.getDay()+6)%7));return toStr(d)};
+const TZ=Intl.DateTimeFormat().resolvedOptions().timeZone||'America/Sao_Paulo';
+const fmtLong=new Intl.DateTimeFormat('pt-BR',{weekday:'long',day:'numeric',month:'long'});
+const fmtWd=new Intl.DateTimeFormat('pt-BR',{weekday:'short'});
+const fmtDM=new Intl.DateTimeFormat('pt-BR',{day:'numeric',month:'short'});
+const fmtHM=new Intl.DateTimeFormat('pt-BR',{hour:'2-digit',minute:'2-digit'});
+const cap=s=>s.charAt(0).toUpperCase()+s.slice(1);
+const wd=s=>fmtWd.format(fromStr(s)).replace('.','');
+
+// ================= regras das tarefas =================
+const isRec=t=>t.rep&&t.rep!=='none';
+function occursOn(t,ds){
+  if(ds<t.date)return false;
+  if(!isRec(t))return t.date===ds;
+  const d=fromStr(ds),o=fromStr(t.date);
+  switch(t.rep){
+    case 'daily':return true;
+    case 'weekdays':{const w=d.getDay();return w>0&&w<6}
+    case 'weekly':return d.getDay()===o.getDay();
+    case 'monthly':return d.getDate()===o.getDate();
+  }
+  return false;
+}
+const isDone=(t,ds)=>isRec(t)?(t.doneDates||[]).includes(ds):!!t.done;
+const prioRank={alta:0,media:1,baixa:2};
+function byTime(a,b){
+  if(!!a.time!==!!b.time)return a.time?-1:1;
+  if(a.time!==b.time)return a.time<b.time?-1:1;
+  return (prioRank[a.prio]??1)-(prioRank[b.prio]??1);
+}
+
+// ================= estado da tela =================
+const ui={tab:'day',cat:'all',cursor:todayStr(),editing:null};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const catLabel={pessoal:'Pessoal',profissional:'Profissional'};
+const prioLabel={alta:'Alta',media:'Média',baixa:'Baixa'};
+const repLabel={daily:'todo dia',weekdays:'dias úteis',weekly:'semanal',monthly:'mensal'};
+let toastT;
+function toast(msg){const el=$('toast');el.textContent=msg;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),2600)}
+
+function tasksOn(ds){
+  if(ui.cat==='google')return[];
+  return state.tasks.filter(t=>(ui.cat==='all'||t.cat===ui.cat)&&occursOn(t,ds)).sort(byTime);
+}
+function gOn(ds){
+  if(!settings.showGoogle||(ui.cat!=='all'&&ui.cat!=='google'))return[];
+  return gEvents.filter(e=>e.days.includes(ds)).sort(byTime);
+}
+function overdue(){
+  const td=todayStr();
+  return state.tasks.filter(t=>(ui.cat==='all'||t.cat===ui.cat)&&!isRec(t)&&!t.done&&t.date<td).sort((a,b)=>a.date<b.date?-1:1);
+}
+
+// ================= Google Agenda =================
+const SCOPES='https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendarlist.readonly';
+const API='https://www.googleapis.com/calendar/v3';
+let token=lsGet(TKEY,null); // {access_token, exp}
+let tokenClient=null, pendingAfterAuth=null, gEvents=[], lastRangeKey='', syncing=false, gError='';
+const tokenValid=()=>token&&token.exp>Date.now()+60000;
+
+function gisReady(){return !!(window.google&&google.accounts&&google.accounts.oauth2)}
+function initClient(){
+  if(tokenClient||!settings.clientId||!gisReady())return !!tokenClient;
+  tokenClient=google.accounts.oauth2.initTokenClient({
+    client_id:settings.clientId,scope:SCOPES,
+    callback:resp=>{
+      if(resp.error){gError='Autorização recusada';updateChip();pendingAfterAuth=null;return}
+      token={access_token:resp.access_token,exp:Date.now()+(resp.expires_in||3600)*1000};
+      lsSet(TKEY,token);gError='';
+      if(!settings.connected){settings.connected=true;saveSettings();}
+      const fn=pendingAfterAuth;pendingAfterAuth=null;
+      updateChip();(fn||syncAll)();
+    },
+    error_callback:err=>{gError=err&&err.type==='popup_closed'?'Login cancelado':'Falha no login';pendingAfterAuth=null;updateChip();}
+  });
+  return true;
+}
+// Pede token. Precisa ser chamado direto de um toque do usuário (por causa do pop-up).
+function requestAuth(then,consent){
+  if(!settings.clientId){toast('Cole seu Client ID em Ajustes primeiro');go('settings');return}
+  if(!initClient()){toast('Carregando Google… tente de novo em instantes');return}
+  pendingAfterAuth=then||null;
+  tokenClient.requestAccessToken({prompt:consent?'consent':''});
+}
+async function api(path,{method='GET',body}={}){
+  if(!tokenValid())throw new Error('auth');
+  const r=await fetch(API+path,{method,headers:{Authorization:'Bearer '+token.access_token,'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});
+  if(r.status===401){token=null;lsDel(TKEY);throw new Error('auth')}
+  if(r.status===204)return null;
+  const j=await r.json().catch(()=>null);
+  if(!r.ok){const e=new Error((j&&j.error&&j.error.message)||('HTTP '+r.status));e.status=r.status;throw e}
+  return j;
+}
+const calPath=()=>'/calendars/'+encodeURIComponent(settings.calendarId||'primary');
+const RRULE={daily:'RRULE:FREQ=DAILY',weekdays:'RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR',weekly:'RRULE:FREQ=WEEKLY',monthly:'RRULE:FREQ=MONTHLY'};
+function localDT(date,time,addMin){
+  const[h,m]=time.split(':').map(Number);const d=fromStr(date);d.setHours(h,m+(addMin||0),0,0);
+  return toStr(d)+'T'+pad(d.getHours())+':'+pad(d.getMinutes())+':00';
+}
+function eventBody(t){
+  const b={
+    summary:(!isRec(t)&&t.done?'✓ ':'')+t.title,
+    description:(t.notes?t.notes+'\n\n':'')+'['+catLabel[t.cat]+' · prioridade '+prioLabel[t.prio].toLowerCase()+'] — Minha Agenda',
+    colorId:t.cat==='pessoal'?'6':'9',
+    extendedProperties:{private:{agendaId:t.id}},
+    recurrence:isRec(t)?[RRULE[t.rep]]:[]
+  };
+  if(t.time){b.start={dateTime:localDT(t.date,t.time),timeZone:TZ};b.end={dateTime:localDT(t.date,t.time,+t.dur||30),timeZone:TZ};}
+  else{b.start={date:t.date};b.end={date:addDays(t.date,1)};}
+  return b;
+}
+async function pushTask(t){
+  const cal=settings.calendarId;
+  if(t.gid&&t.gcal===cal){
+    try{await api(calPath()+'/events/'+encodeURIComponent(t.gid),{method:'PUT',body:eventBody(t)});return}
+    catch(e){if(e.status!==404&&e.status!==410)throw e}
+  }
+  const ev=await api(calPath()+'/events',{method:'POST',body:eventBody(t)});
+  t.gid=ev.id;t.gcal=cal;
+}
+function rangeNow(){
+  if(ui.tab==='week'){const s=weekStart(ui.cursor);return[s,addDays(s,7)]}
+  const s=weekStart(ui.cursor);return[s,addDays(s,7)]; // dia: busca a semana toda (faixa mostra pontinhos)
+}
+async function fetchEvents(force){
+  if(!tokenValid()||!settings.showGoogle)return;
+  const[s,e]=rangeNow();const key=settings.calendarId+s+e;
+  if(!force&&key===lastRangeKey)return;
+  lastRangeKey=key;
+  const q=new URLSearchParams({timeMin:fromStr(s).toISOString(),timeMax:fromStr(e).toISOString(),singleEvents:'true',orderBy:'startTime',maxResults:'250'});
+  const j=await api(calPath()+'/events?'+q);
+  gEvents=(j.items||[]).filter(ev=>ev.status!=='cancelled'&&!(ev.extendedProperties&&ev.extendedProperties.private&&ev.extendedProperties.private.agendaId)).map(ev=>{
+    let days=[],time='';
+    if(ev.start.date){let d=ev.start.date;const end=ev.end.date;while(d<end){days.push(d);d=addDays(d,1)}}
+    else{const st=new Date(ev.start.dateTime),en=new Date(ev.end.dateTime);time=fmtHM.format(st);let d=toStr(st);const last=toStr(new Date(en-1));while(d<=last){days.push(d);d=addDays(d,1)}}
+    return{id:ev.id,title:ev.summary||'(sem título)',time,days,link:ev.htmlLink,loc:ev.location||''};
+  });
+  render();
+}
+async function syncAll(){
+  if(syncing)return; if(!tokenValid()){updateChip();return}
+  syncing=true;gError='';updateChip();
+  try{
+    for(const gid of [...state.pendingDeletes]){
+      try{await api(calPath()+'/events/'+encodeURIComponent(gid),{method:'DELETE'})}
+      catch(e){if(e.message==='auth')throw e; if(e.status&&e.status!==404&&e.status!==410)throw e}
+      state.pendingDeletes=state.pendingDeletes.filter(x=>x!==gid);save();
+    }
+    for(const t of state.tasks.filter(t=>t.dirty&&t.sync!==false)){await pushTask(t);t.dirty=false;save()}
+    await fetchEvents(true);
+  }catch(e){gError=e.message==='auth'?'':'Erro: '+e.message;console.warn(e)}
+  syncing=false;updateChip();render();
+}
+// após qualquer mudança local: sincroniza se dá, senão fica pendente
+function afterChange(){
+  if(!settings.connected||!settings.clientId)return;
+  if(tokenValid())syncAll(); else if(navigator.onLine)requestAuth(syncAll);
+}
+function pendingCount(){return state.tasks.filter(t=>t.dirty&&t.sync!==false).length+state.pendingDeletes.length}
+function updateChip(){
+  const dot=$('gDot'),txt=$('gText');dot.className='dot';
+  const p=pendingCount();
+  if(!settings.clientId||!settings.connected){txt.textContent='Conectar Google';return}
+  if(syncing){dot.classList.add('warn');txt.textContent='Sincronizando…';return}
+  if(gError){dot.classList.add('err');txt.textContent=gError.length>22?'Erro no Google':gError;return}
+  if(!tokenValid()){dot.classList.add('warn');txt.textContent=p?p+' pendente'+(p>1?'s':''):'Toque p/ atualizar';return}
+  if(p){dot.classList.add('warn');txt.textContent=p+' pendente'+(p>1?'s':'');return}
+  dot.classList.add('ok');txt.textContent='Sincronizado';
+}
+
+// ================= render =================
+function taskRow(t,ds,showDate){
+  const done=isDone(t,ds);
+  const syncMark=settings.connected&&t.sync!==false?(t.dirty?' · ⟳':t.gid?' · ☁︎':''):'';
+  return `<div class="task ${done?'done':''}">
+    <div class="time">${t.time||'—'}</div>
+    <button class="chk ${done?'on':''}" data-toggle="${t.id}" data-ds="${ds}" aria-label="Concluir"></button>
+    <div class="body" data-edit="${t.id}">
+      <div class="title">${esc(t.title)}</div>
+      <div class="meta">
+        <span class="tag ${t.cat}">${catLabel[t.cat]}</span>
+        <span><i class="prio ${t.prio}"></i> ${prioLabel[t.prio]}</span>
+        ${isRec(t)?`<span>↻ ${repLabel[t.rep]}</span>`:''}
+        ${showDate?`<span>· ${fmtDM.format(fromStr(t.date))}</span>`:''}
+        <span>${syncMark}</span>
+      </div>
+      ${t.notes?`<div class="notes">${esc(t.notes)}</div>`:''}
+    </div>
+  </div>`;
+}
+function gRow(e){
+  return `<div class="task">
+    <div class="time">${e.time||'dia'}</div>
+    <div class="gicon">G</div>
+    <div class="body" data-glink="${esc(e.link)}">
+      <div class="title">${esc(e.title)}</div>
+      <div class="meta"><span class="tag google">Google Agenda</span>${e.loc?`<span>📍 ${esc(e.loc)}</span>`:''}</div>
+    </div>
+  </div>`;
+}
+function renderStrip(){
+  const ws=weekStart(ui.cursor),td=todayStr();let h='<button class="nav" data-shift="-7" aria-label="Semana anterior">‹</button>';
+  for(let i=0;i<7;i++){const ds=addDays(ws,i);const has=tasksOn(ds).length+gOn(ds).length>0;
+    h+=`<button class="pill ${ds===td?'today':''} ${ds===ui.cursor&&ui.tab==='day'?'sel':''}" data-goto="${ds}">${wd(ds)}<b>${fromStr(ds).getDate()}</b><i class="${has?'has':''}"></i></button>`}
+  h+='<button class="nav" data-shift="7" aria-label="Próxima semana">›</button>';
+  $('strip').innerHTML=h;
+}
+function renderDay(){
+  const ds=ui.cursor,td=todayStr();
+  $('hTitle').textContent=ds===td?'Hoje':ds===addDays(td,1)?'Amanhã':ds===addDays(td,-1)?'Ontem':wd(ds);
+  $('hSub').textContent=cap(fmtLong.format(fromStr(ds)));
+  const list=tasksOn(ds),gl=gOn(ds),done=list.filter(t=>isDone(t,ds)),pend=list.filter(t=>!isDone(t,ds));
+  const pct=list.length?Math.round(done.length/list.length*100):0;
+  let h='';
+  if(list.length)h+=`<div class="progress"><span>${done.length} de ${list.length} concluídas</span><div class="bar"><i style="width:${pct}%"></i></div></div>`;
+  if(ds===td){const late=overdue();if(late.length)h+=`<div class="panel"><div class="sec late">Atrasadas</div>${late.map(t=>taskRow(t,t.date,true)).join('')}</div>`}
+  if(!list.length&&!gl.length)h+=`<div class="panel"><div class="empty">Nada agendado para este dia.<br><br><button class="btn primary" data-new="${ds}">+ Adicionar tarefa</button></div></div>`;
+  else{
+    // agenda unificada: tarefas pendentes + eventos do Google, por horário
+    const merged=[...pend.map(t=>({k:'t',t,time:t.time,prio:t.prio})),...gl.map(e=>({k:'g',e,time:e.time==='dia'?'':e.time,prio:'media'}))].sort(byTime);
+    if(merged.length)h+=`<div class="panel"><div class="sec">A fazer</div>${merged.map(x=>x.k==='t'?taskRow(x.t,ds):gRow(x.e)).join('')}</div>`;
+    if(done.length)h+=`<div class="panel"><div class="sec">Concluídas</div>${done.map(t=>taskRow(t,ds)).join('')}</div>`;
+  }
+  $('view').innerHTML=h;
+}
+function renderWeek(){
+  const ws=weekStart(ui.cursor),td=todayStr();
+  $('hTitle').textContent='Semana';
+  $('hSub').textContent=fmtDM.format(fromStr(ws))+' – '+fmtDM.format(fromStr(addDays(ws,6)));
+  let h='';
+  for(let i=0;i<7;i++){
+    const ds=addDays(ws,i);
+    const items=[...tasksOn(ds).map(t=>({k:'t',t,time:t.time,prio:t.prio})),...gOn(ds).map(e=>({k:'g',e,time:e.time,prio:'media'}))].sort(byTime);
+    h+=`<div class="wday ${ds===td?'today':''}"><h3 data-goto="${ds}"><span>${cap(fmtLong.format(fromStr(ds)).split(',')[0])}</span><small>${fmtDM.format(fromStr(ds))}</small></h3>
+      ${items.length?items.map(x=>x.k==='t'
+        ?`<div class="mini ${x.t.cat} ${isDone(x.t,ds)?'done':''}" data-edit="${x.t.id}">${x.t.time?`<span class="t">${x.t.time}</span>`:''}<i class="prio ${x.t.prio}"></i><span>${esc(x.t.title)}</span></div>`
+        :`<div class="mini google" data-glink="${esc(x.e.link)}">${x.e.time?`<span class="t">${x.e.time}</span>`:''}<span>${esc(x.e.title)}</span></div>`).join('')
+        :`<div class="wempty">Livre</div>`}
+    </div>`;
+  }
+  $('view').innerHTML=h;
+}
+function renderSettings(){
+  $('hTitle').textContent='Ajustes';$('hSub').textContent='Google Agenda e backup';
+  const origin=location.origin.startsWith('http')?location.origin:'(publique o app para ver o endereço)';
+  const conn=settings.connected&&settings.clientId;
+  $('view').innerHTML=`
+  <div class="card stack">
+    <h2>Google Agenda</h2>
+    ${conn?`<p>Conectado. As tarefas vão para a agenda <b>${esc(settings.calendarName)}</b>${settings.showGoogle?' e os seus eventos aparecem aqui no app':''}.</p>`
+      :`<p>Cole abaixo o <b>Client ID</b> que você criou no Google Cloud. Na credencial, a origem JavaScript autorizada deve ser:</p><p><code>${esc(origin)}</code></p>`}
+    <label>Client ID<input id="cid" value="${esc(settings.clientId)}" placeholder="xxxx.apps.googleusercontent.com" autocomplete="off" spellcheck="false"></label>
+    ${conn?`
+      <label>Agenda de destino<select id="calSel"><option value="${esc(settings.calendarId)}">${esc(settings.calendarName)}</option></select></label>
+      <button class="btn" id="loadCals">Carregar minhas agendas</button>
+      <label class="switch">Mostrar eventos do Google no app<input type="checkbox" id="showG" ${settings.showGoogle?'checked':''}></label>
+      <button class="btn primary full" id="syncNow">Sincronizar agora</button>
+      <button class="btn danger full" id="disc">Desconectar</button>`
+      :`<button class="btn primary full" id="conn">Conectar ao Google</button>`}
+  </div>
+  <div class="card stack">
+    <h2>Backup</h2>
+    <p>Suas tarefas ficam salvas neste celular. Exporte um backup de vez em quando.</p>
+    <button class="btn full" id="exp">Exportar backup</button>
+    <button class="btn full" id="imp">Importar backup</button>
+  </div>
+  <div class="card">
+    <h2>Instalar no celular</h2>
+    <p><b>iPhone (Safari):</b> botão Compartilhar → “Adicionar à Tela de Início”.</p>
+    <p><b>Android (Chrome):</b> menu ⋮ → “Instalar app” ou “Adicionar à tela inicial”.</p>
+  </div>
+  ${storageOk?'':'<div class="card"><p style="color:var(--hi)">O armazenamento deste navegador está bloqueado — as tarefas não serão guardadas ao fechar. Exporte um backup.</p></div>'}`;
+}
+function render(){
+  $('calNav').classList.toggle('hidden',ui.tab==='settings');
+  $('fab').classList.toggle('hidden',ui.tab==='settings');
+  if(ui.tab!=='settings')renderStrip();
+  ui.tab==='day'?renderDay():ui.tab==='week'?renderWeek():renderSettings();
+  updateChip();
+}
+function go(tab){
+  ui.tab=tab;document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  render();window.scrollTo(0,0);fetchEvents().catch(()=>{});
+}
+
+// ================= formulário =================
+const dlg=$('dlg'),form=$('form');
+function openForm(t,ds){
+  ui.editing=t?t.id:null;
+  $('fTitle').textContent=t?'Editar tarefa':'Nova tarefa';
+  $('delBtn').style.visibility=t?'visible':'hidden';
+  $('syncRow').classList.toggle('hidden',!settings.connected);
+  form.title.value=t?t.title:'';
+  form.date.value=t?t.date:(ds||ui.cursor);
+  form.time.value=t?(t.time||''):'';
+  form.cat.value=t?t.cat:(ui.cat==='pessoal'||ui.cat==='profissional'?ui.cat:'profissional');
+  form.dur.value=t?String(t.dur||30):'30';
+  form.prio.value=t?t.prio:'media';
+  form.rep.value=t?(t.rep||'none'):'none';
+  form.notes.value=t?(t.notes||''):'';
+  form.sync.checked=t?t.sync!==false:true;
+  dlg.showModal();
+  if(!t)setTimeout(()=>form.title.focus(),50);
+}
+form.addEventListener('submit',e=>{
+  e.preventDefault();
+  const d={title:form.title.value.trim(),date:form.date.value,time:form.time.value,cat:form.cat.value,dur:+form.dur.value,prio:form.prio.value,rep:form.rep.value,notes:form.notes.value.trim(),sync:form.sync.checked};
+  if(!d.title||!d.date)return;
+  let t;
+  if(ui.editing){
+    t=state.tasks.find(x=>x.id===ui.editing);
+    if(t.sync!==false&&!d.sync&&t.gid){state.pendingDeletes.push(t.gid);t.gid=null}
+    Object.assign(t,d);
+  }else{t={id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),done:false,doneDates:[],...d};state.tasks.push(t)}
+  t.dirty=d.sync;
+  save();dlg.close();ui.cursor=d.date;render();afterChange();
+});
+$('cancelBtn').onclick=()=>dlg.close();
+dlg.addEventListener('click',e=>{if(e.target===dlg)dlg.close()});
+$('delBtn').onclick=()=>{
+  const t=state.tasks.find(x=>x.id===ui.editing);if(!t)return;
+  if(!confirm(isRec(t)?'Excluir esta tarefa e todas as repetições?':'Excluir esta tarefa?'))return;
+  if(t.gid)state.pendingDeletes.push(t.gid);
+  state.tasks=state.tasks.filter(x=>x.id!==t.id);save();dlg.close();render();
+  if(t.gid)afterChange();
+};
+
+// ================= toques =================
+document.addEventListener('click',e=>{
+  const el=e.target.closest('[data-toggle],[data-edit],[data-new],[data-goto],[data-shift],[data-glink],[data-tab],[data-c]');
+  if(!el)return;
+  const ds=el.dataset;
+  if(ds.toggle){
+    const t=state.tasks.find(x=>x.id===ds.toggle);if(!t)return;
+    if(isRec(t)){t.doneDates=t.doneDates||[];const i=t.doneDates.indexOf(ds.ds);i>=0?t.doneDates.splice(i,1):t.doneDates.push(ds.ds)}
+    else{t.done=!t.done;if(t.gid&&t.sync!==false){t.dirty=true}}
+    if(navigator.vibrate)navigator.vibrate(10);
+    save();render();if(t.dirty)afterChange();
+  }
+  else if(ds.edit)openForm(state.tasks.find(x=>x.id===ds.edit));
+  else if(ds.new)openForm(null,ds.new);
+  else if(ds.goto){ui.cursor=ds.goto;go('day')}
+  else if(ds.shift){ui.cursor=addDays(ui.cursor,+ds.shift);render();fetchEvents().catch(()=>{})}
+  else if(ds.glink){if(ds.glink)window.open(ds.glink,'_blank')}
+  else if(ds.tab)go(ds.tab);
+  else if(ds.c){ui.cat=ds.c;document.querySelectorAll('#filters button').forEach(b=>b.classList.toggle('on',b===el));render()}
+});
+$('fab').onclick=()=>openForm(null);
+$('gChip').onclick=()=>{
+  if(!settings.clientId||!settings.connected){go('settings');return}
+  if(tokenValid())syncAll(); else requestAuth(syncAll);
+};
+// arrastar para trocar de dia
+let sx=null,sy=null;
+$('view').addEventListener('touchstart',e=>{sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+$('view').addEventListener('touchend',e=>{
+  if(sx===null||ui.tab==='settings')return;const dx=e.changedTouches[0].clientX-sx,dy=e.changedTouches[0].clientY-sy;sx=null;
+  if(Math.abs(dx)>70&&Math.abs(dx)>Math.abs(dy)*1.5){ui.cursor=addDays(ui.cursor,(dx<0?1:-1)*(ui.tab==='week'?7:1));render();fetchEvents().catch(()=>{})}
+},{passive:true});
+
+// ajustes (delegado, pois a tela é recriada)
+$('view').addEventListener('click',async e=>{
+  const id=e.target.id;
+  if(id==='conn'){
+    const v=$('cid').value.trim();
+    if(!/\.apps\.googleusercontent\.com$/.test(v)){toast('Client ID inválido — termina com .apps.googleusercontent.com');return}
+    if(v!==settings.clientId){settings.clientId=v;tokenClient=null;saveSettings()}
+    if(!initClient()){toast('Carregando Google… tente de novo');return}
+    // marca todas as tarefas para envio na primeira conexão
+    state.tasks.forEach(t=>{if(t.sync!==false)t.dirty=true});save();
+    requestAuth(()=>{toast('Google conectado!');render();syncAll()},true);
+  }
+  else if(id==='syncNow'){tokenValid()?syncAll():requestAuth(syncAll)}
+  else if(id==='disc'){
+    if(!confirm('Desconectar do Google? Suas tarefas continuam no app.'))return;
+    try{if(token&&gisReady())google.accounts.oauth2.revoke(token.access_token,()=>{})}catch(_){}
+    token=null;lsDel(TKEY);settings.connected=false;saveSettings();gEvents=[];lastRangeKey='';render();
+  }
+  else if(id==='loadCals'){
+    const run=async()=>{try{
+      const j=await api('/users/me/calendarList?minAccessRole=writer');
+      const sel=$('calSel');if(!sel)return;
+      sel.innerHTML=(j.items||[]).map(c=>`<option value="${esc(c.id)}" ${c.id===settings.calendarId||(c.primary&&settings.calendarId==='primary')?'selected':''}>${esc(c.summaryOverride||c.summary)}${c.primary?' (principal)':''}</option>`).join('');
+      toast('Escolha a agenda na lista');
+    }catch(err){toast('Não consegui carregar: '+err.message)}};
+    tokenValid()?run():requestAuth(run);
+  }
+  else if(id==='exp'){
+    const blob=new Blob([JSON.stringify(state,null,2)],{type:'application/json'});
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='agenda-backup-'+todayStr()+'.json';a.click();
+    setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+  }
+  else if(id==='imp')$('importFile').click();
+});
+$('view').addEventListener('change',e=>{
+  if(e.target.id==='calSel'){
+    const o=e.target.selectedOptions[0];settings.calendarId=o.value;settings.calendarName=o.textContent.replace(' (principal)','');saveSettings();
+    state.tasks.forEach(t=>{if(t.sync!==false)t.dirty=true});save();lastRangeKey='';
+    toast('Agenda alterada — as tarefas serão enviadas para ela');syncAll();
+  }
+  if(e.target.id==='showG'){settings.showGoogle=e.target.checked;saveSettings();if(!settings.showGoogle)gEvents=[];lastRangeKey='';fetchEvents().catch(()=>{});render()}
+  if(e.target.id==='cid'){const v=e.target.value.trim();if(v!==settings.clientId){settings.clientId=v;tokenClient=null;settings.connected=false;saveSettings()}}
+});
+$('importFile').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  f.text().then(txt=>{
+    try{const d=JSON.parse(txt);if(!Array.isArray(d.tasks))throw 0;
+      if(confirm('Substituir suas tarefas atuais por este backup ('+d.tasks.length+' tarefas)?')){state=d;state.pendingDeletes=state.pendingDeletes||[];save();render()}
+    }catch(_){toast('Arquivo de backup inválido')}
+    e.target.value='';
+  });
+};
+
+// ================= início =================
+if(!state.tasks.length&&!lsGet(KEY+'-seen',false)){
+  const td=todayStr();
+  state.tasks=[
+    {id:'ex1',title:'Revisar e-mails e prioridades do dia',date:td,time:'08:30',dur:30,cat:'profissional',prio:'alta',rep:'weekdays',notes:'Exemplo de tarefa que repete nos dias úteis.',done:false,doneDates:[]},
+    {id:'ex2',title:'Reunião de alinhamento',date:td,time:'10:00',dur:60,cat:'profissional',prio:'media',rep:'none',notes:'Toque para editar ou excluir.',done:false,doneDates:[]},
+    {id:'ex3',title:'Academia',date:td,time:'18:30',dur:60,cat:'pessoal',prio:'media',rep:'none',notes:'',done:false,doneDates:[]},
+    {id:'ex4',title:'Pagar contas do mês',date:td,time:'',dur:30,cat:'pessoal',prio:'alta',rep:'none',notes:'',done:false,doneDates:[]}
+  ];
+  lsSet(KEY+'-seen',true);save();
+}
+render();
+// quando o script do Google terminar de carregar
+(function waitGis(n){if(gisReady()){initClient();fetchEvents().catch(()=>{});return}if(n<50)setTimeout(()=>waitGis(n+1),200)})(0);
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){render();fetchEvents(true).catch(()=>{})}});
+window.addEventListener('online',()=>{if(tokenValid()&&pendingCount())syncAll()});
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+// expõe para testes
+window.__agenda={state:()=>state,settings:()=>settings,setToken:t=>{token=t},syncAll};
+})();
+</script>
+</body>
+</html>
